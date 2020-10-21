@@ -1,12 +1,34 @@
 from keras.preprocessing.text import Tokenizer #this is used to assign some numeric value to every word that appear in the training set
 from keras.preprocessing.sequence import pad_sequences
 import pandas as pd
+import nltk
+import numpy as np
+import re
+from sklearn.model_selection import train_test_split
+import string
 
-#Load the cleaned training and test sets
-X_train = pd.read_csv("X_train.csv")
-X_test = pd.read_csv("X_test.csv")
-y_train = pd.read_csv("y_train.csv")
-y_test = pd.read_csv("y_test.csv")
+#Read in and clean the text
+
+#Load the stopwords
+stopwords = nltk.corpus.stopwords.words("english")
+
+data = pd.read_csv("agr.csv", encoding = "utf-8")
+data.columns = ["label", "text"]
+#we replace the classes by 1 and 0 for y and n respectively
+data["label"] = np.where(data["label"]=="y",1,0)
+
+#define function to clean text
+def clean_text(text):
+    text = "".join([word.lower() for word in text if word not in string.punctuation])
+    tokens = re.split("\W+", text)
+    text = [word for word in tokens if word not in stopwords]
+    return text
+
+#actually clean the text and create a new column for it
+data["clean_text"] = data["text"].apply(lambda x: clean_text(x))
+
+#Now split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(data["clean_text"], data["label"], test_size = 0.2)
 
 #Train the tokenizer and use that tokenizer to convert the sentences to sequences of numbers
 tokenizer = Tokenizer() #Load the tokenizer
