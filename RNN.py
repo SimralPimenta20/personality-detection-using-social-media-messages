@@ -32,9 +32,9 @@ X_train, X_test, y_train, y_test = train_test_split(data["clean_text"], data["la
 
 #Train the tokenizer and use that tokenizer to convert the sentences to sequences of numbers
 tokenizer = Tokenizer() #Load the tokenizer
-tokenizer.fit_on_texts(X_train["clean_text"])#Train the tokenizer
-X_train_seq = tokenizer.texts_to_sequences(X_train["clean_text"])#create token sequences for the sentences in the X_train file
-X_test_seq = tokenizer.texts_to_sequences(X_test["clean_text"])#create token sequences for the sentences in the X_test file
+tokenizer.fit_on_texts(X_train)#Train the tokenizer
+X_train_seq = tokenizer.texts_to_sequences(X_train)#create token sequences for the sentences in the X_train file
+X_test_seq = tokenizer.texts_to_sequences(X_test)#create token sequences for the sentences in the X_test file
 
 #Now since the number of tokens in each sentence is not the same we pad it- meaning we either truncate or pad each sentence so that the number of tokens is as we want it to be
 
@@ -83,5 +83,5 @@ model.compile(optimizer = "adam", loss = "binary_crossentropy", metrics = ["accu
 from keras.callbacks import EarlyStopping
 es_callback = EarlyStopping(monitor='val_loss', patience=3)
 #Fit the RNN - train the neural network
-history = model.fit(X_train_seq_padded, y_train["label"], batch_size = 50, epochs = 10, validation_data = (X_test_seq_padded, y_test), verbose = 1,callbacks=[es_callback])
+history = model.fit(X_train_seq_padded, y_train, batch_size = 50, epochs = 10, validation_data = (X_test_seq_padded, y_test), verbose = 1,callbacks=[es_callback])
 
