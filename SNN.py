@@ -43,7 +43,7 @@ X_train_seq_padded = pad_sequences(X_train_seq, 64)#####WE CAN CHANGE 50
 X_test_seq_padded = pad_sequences(X_test_seq, 64)
 
 import keras.backend as K
-from keras.layers import Dense, Embedding, LSTM, Bidirectional
+from keras.layers import Dense, Embedding, LSTM, SeparableConv1D, MaxPooling1D, GlobalAveragePooling1D
 from keras.layers import Dropout, GRU
 from keras.models import Sequential
 
@@ -65,33 +65,23 @@ def precision_m(y_true, y_pred):
 ###CONSTRUCT the basic RNN model framework
 #we are creating a sequential model
 model = Sequential()
-#check with tanh and two lstm layers
-model.add(Embedding(len(tokenizer.index_word)+1, 128)) #its like embedding text in the form of vectors
-#model.add(LSTM(32, dropout = 0.5, recurrent_dropout = 0.5, activation = "sigmoid", recurrent_activation = "sigmoid"))#dropouts can usually take values between 0.0 to 1.0 [kind of like percent]# return_sequences = True
-#LSTM is an RNN layer
-model.add(Bidirectional(GRU(128, return_sequences = True)))
-model.add(Bidirectional(GRU(128)))
-#dropout params are added in case the RNN overfits the data
-#that happens when the training accuracy is significantly greater than the testing accuracy
-
-model.add(Dense(32,activation = "relu"))#relu, sigmoid, softmax, softplus, softsign, tanh, selu, elu, exponential
-#model.add(Dropout(0.2))
-model.add(Dense(2, activation = "relu"))#since we wish to predict only one class
+model.add(Embedding(len(tokenizer.index_word)+1, 64))
+model.add(SeparableConv1D(filters = 64, kernel_size = 3, activation = "relu", bias_initializer = "random_uniform", padding = "same"))
+model.add(MaxPooling1D(pool_size = 3))
+model.add(SeparableConv1D(filters = 64, kernel_size = 3, activation = "relu", bias_initializer = "random_uniform", padding = "same"))
+model.add(SeparableConv1D(filters = 64, kernel_size = 3, activation = "relu", bias_initializer = "random_uniform", padding = "same"))
+model.add(GlobalAveragePooling1D())
+model.add(Dense(units = 2, activation = "softmax"))
 model.summary()
 
-#Compile the model
-##model.compile(optimizer = "adam", loss = "binary_crossentropy", metrics = ["accuracy", precision_m, recall_m])
-model.compile(optimizer = "adam", loss = "sparse_categorical_crossentropy", metrics = ["accuracy",precision_m, recall_m])
-##from keras.callbacks import EarlyStopping
-##es_callback = EarlyStopping(monitor='val_loss', patience=3)
-###Fit the RNN - train the neural network
-##history = model.fit(X_train_seq_padded, y_train, batch_size = 50, epochs = 10, validation_data = (X_test_seq_padded, y_test), verbose = 1,callbacks=[es_callback])
+model.compile(optimizer = "adam", loss = "sparse_categorical_crossentropy", metrics = ["accuracy"])
 
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 
-es = EarlyStopping(monitor = "val_loss", min_delta = 0.0005, patience = 3, verbose = 1, mode = "min", baseline = 1.5)
+es = EarlyStopping(monitor = "val_loss", min_delta = 0.005, patience = 3, verbose = 1, mode = "min", baseline = 1.5)
 mc = ModelCheckpoint("best_weights.h5", monitor = "val_loss", verbose = 1, mode = "auto")
 rd = ReduceLROnPlateau(monitor = "val_loss", factor = 0.1, patience = 3, verbose = 1, mode = "auto", min_delta = 0.0001, cooldown = 0, min_lr = 0)
 
 #Fit the RNN - train the neural network
 history = model.fit(X_train_seq_padded, y_train, epochs = 10, validation_data = (X_test_seq_padded, y_test), verbose = 1,callbacks=[es, mc, rd])
+
